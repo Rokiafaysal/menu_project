@@ -1,37 +1,48 @@
 const cartService = require("../services/cartServices");
 
+// controllers/cartController.js
+const Cart = require("../models/Cart");
+
 exports.addMealToCart = async (req, res) => {
   try {
-    const {
-      mealId,
-      quantity,
-      //
-      // price,
-      // note
-    } = req.body;
+    const { mealId, quantity } = req.body;
+    const userId = req.user._id; // ✅ هنا user بيكون جاي من middleware
 
-    // const totalCartPrice = quantity * price;
-    //
-    // Call the service to add the meal to the cart
-    const cart = await cartService.addMealToCart({
-      mealId,
-      quantity,
-      //  price,
-      //note,
-      //totalCartPrice,
-    });
+    if (!userId) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولًا" });
+    }
 
-    // Return success response
-    res.status(200).json({
-      message: "Meal added to cart",
-      // cart,
-    });
-  } catch (err) {
-    // Return error response in case of failure
-    res.status(500).json({ error: err.message });
+    let cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+      cart = new Cart({ userId, cartItems: [] });
+    }
+
+    const existingItem = cart.cartItems.find(
+      (item) => item.meal.toString() === mealId
+    );
+
+    if (existingItem) {
+      existingItem.quantity += quantity;
+    } else {
+      cart.cartItems.push({
+        meal: mealId,
+        quantity,
+        price: 0,
+      });
+    }
+
+    cart.totalCartPrice = cart.cartItems.reduce(
+      (acc, item) => acc + item.price * item.quantity,
+      0
+    );
+
+    await cart.save();
+    res.status(200).json(cart);
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
   }
 };
-
 exports.getCart = async (req, res) => {
   try {
     // Call the service to get the cart

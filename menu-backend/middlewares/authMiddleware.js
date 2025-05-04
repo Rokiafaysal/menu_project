@@ -1,22 +1,29 @@
 // middlewares/authMiddleware.js
 const jwt = require("jsonwebtoken");
+const User = require("../models/userModel");
 
-const protect = (req, res, next) => {
-  let token = req.headers.authorization;
-
-  if (!token) {
-    return res.status(401).json({ error: "Authorization token missing" });
-  }
-
-  token = token.split(" ")[1]; // Extract the token part if "Bearer" is used
-
+const authenticateUser = async (req, res, next) => {
   try {
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "توكن غير موجود. سجل دخول أولًا." });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded.id; // Store user info
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({ message: "مستخدم غير موجود." });
+    }
+
+    req.user = user; // ✅ نخزن اليوزر في الريكويست
     next();
   } catch (error) {
-    return res.status(401).json({ error: "Invalid or expired token" });
+    res.status(401).json({ message: "توكن غير صالح أو انتهت صلاحيته." });
   }
 };
 
-module.exports = protect;
+module.exports = authenticateUser;

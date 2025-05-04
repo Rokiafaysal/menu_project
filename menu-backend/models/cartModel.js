@@ -1,26 +1,18 @@
-const mongoose = require("mongoose");
-const Meal = require("./mealModel");
+// models/Cart.js
 
-const cartSchema = new mongoose.Schema(
-  {
-    cartItems: [
-      {
-        meal: {
-          type: mongoose.Schema.ObjectId,
-          ref: "Meal",
-          required: false,
-        },
-        quantity: {
-          type: Number,
-          default: 1,
-        },
-        // note: String,
-        // price: Number,
-      },
-    ],
-    //  totalCartPrice: Number,
-  },
-  { timestamps: true }
-);
+const mongoose = require("mongoose");
+
+const cartItemSchema = new mongoose.Schema({
+  meal: { type: mongoose.Schema.Types.ObjectId, ref: "Meal" },
+  quantity: Number,
+  price: Number,
+  note: String,
+});
+
+const cartSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  cartItems: [cartItemSchema],
+  totalCartPrice: { type: Number, default: 0 },
+});
 
 module.exports = mongoose.model("Cart", cartSchema);
